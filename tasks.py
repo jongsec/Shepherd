@@ -123,6 +123,7 @@ def check_domains():
             domain_instance.ibm_xforce_cat = lab_results[domain]['categories']['xforce']
             domain_instance.trendmicro_cat = lab_results[domain]['categories']['trendmicro']
             domain_instance.fortiguard_cat = lab_results[domain]['categories']['fortiguard']
+            domain_instance.websense_cat = lab_results[domain]['categories']['websense']
             domain_instance.mx_toolbox_status = lab_results[domain]['categories']['mxtoolbox']
             domain_instance.save()
         except Exception as error:
