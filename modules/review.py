@@ -18,8 +18,10 @@ import sys
 import json
 import shutil
 import base64
-from time import sleep
+import time
 
+import click
+import urllib
 from django.conf import settings
 from catalog.models import Domain
 
@@ -30,6 +32,13 @@ from lxml import etree
 from lxml import objectify
 from cymon import Cymon
 from bs4 import BeautifulSoup
+
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.firefox.options import Options
 
 
 # Disable requests warnings for things like disabling certificate checking
