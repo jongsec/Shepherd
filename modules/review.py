@@ -173,42 +173,27 @@ class DomainReview(object):
     def check_bluecoat(self, domain, ocr=True):
         """Check the provided domain's category as determined by Symantec Bluecoat."""
         categories = []
-        bluecoart_uri = 'https://sitereview.bluecoat.com/resource/lookup'
-        post_data = {'url': domain, 'captcha': ''}
-        headers = {'User-Agent': self.useragent, 
-                   'Content-Type': 'application/json; charset=UTF-8', 
-                   'Referer': 'https://sitereview.bluecoat.com/lookup'}
-        try:
-            response = self.session.post(bluecoart_uri, headers=headers, json=post_data, verify=False)
-            root = etree.fromstring(response.text)
-            for node in root.xpath('//CategorizationResult//categorization//categorization//name'):
-                categories.append(node.text)
-            if 'captcha' in categories:
-                if ocr:
-                    # This request is also performed by a browser, but is not needed for our purposes
-                    print('[*] Received a CAPTCHA challenge from Bluecoat...')
-                    captcha = self.solve_captcha('https://sitereview.bluecoat.com/resource/captcha.jpg', self.session)
-                    if captcha:
-                        b64captcha = base64.urlsafe_b64encode(captcha.encode('utf-8')).decode('utf-8')
-                        # Send CAPTCHA solution via GET since inclusion with the domain categorization request doesn't work anymore
-                        print('[*] Submitting an OCRed CAPTCHA text to Bluecoat...')
-                        captcha_solution_url = 'https://sitereview.bluecoat.com/resource/captcha-request/{0}'.format(b64captcha)
-                        response = self.session.get(url=captcha_solution_url, headers=headers, verify=False)
-                        # Try the categorization request again
-                        response = self.session.post(url, headers=headers, json=postData, verify=False)
-                        response_json = json.loads(response.text)
-                        if 'errorType' in response_json:
-                            print('[!] CAPTCHA submission was apparently incorrect!')
-                            categories = response_json['errorType']
-                        else:
-                            print('[!] CAPTCHA submission was accepted!')
-                            categories = response_json['categorization'][0]['name']
-                    else:
-                        print('[!] Failed to solve BlueCoat CAPTCHA with OCR. Manually solve at: "https://sitereview.bluecoat.com/sitereview.jsp"')
-                else:
-                    print('[!] Failed to solve BlueCoat CAPTCHA with OCR. Manually solve at: "https://sitereview.bluecoat.com/sitereview.jsp"')
-        except Exception as error:
-            print('[!] Bluecoat request failed: {0}'.format(error))
+        #set headless option
+        options = Options()
+        options.headless = True
+        #print("[*] Checking category for ")
+        driver = webdriver.Firefox(options=options, executable_path="./geckodriver")
+        driver.get("https://sitereview.bluecoat.com/#/")
+        #print(driver.title)
+        search_bar = driver.find_element_by_id("txtSearch")
+        search_bar.clear()
+        search_bar.send_keys(domain)
+        #click twice to get past the acceptable use of terms page load
+        driver.execute_script("btnLookupSubmit.click();")
+        time.sleep(2)
+        driver.execute_script("btnLookupSubmit.click();")
+        #print(driver.current_url)
+        # wait until the page loads
+        time.sleep(5)
+        #print(driver.find_element_by_class_name("clickable-category").text)
+        categories = driver.find_element_by_class_name("clickable-category").text
+        #print(categories)
+        driver.close()
         return categories
 
     def solve_captcha(self, url, session):
@@ -320,6 +305,72 @@ class DomainReview(object):
         except Exception as error:
             print('[!] OpenDNS request failed: {0}'.format(error))
         return categories
+
+    def check_websense(self, domain):
+        #check if domain has been scanned before and return the URL for the report if it does
+        categories = []
+        with open("dict.json") as websense_history_file:
+            websense_history = json.load(websense_history_file)
+        try:
+            websense_report = websense_history.get(domain, None)
+            print(websense_report)
+            request = urllib.request.Request(websense_report)
+            request.add_header("User-Agent", "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1)")
+            response = urllib.request.urlopen(request)
+            try:
+                reportUrl = response.url
+                #sleep 5 seconds to wait for report to load
+                #time.sleep(5)
+                resp = response.read().decode('utf-8')
+                location = re.findall('<td class="classAction">(.*?)</td>',resp,re.DOTALL)
+                categories = location[4]
+                print("\033[1;32m[!] Websense: Site categorized as: " + categories + "\033[0;0m")
+            except Exception as e:
+                print("[-] An error occurred")
+                print(e)            
+        except Exception as e:
+            print("[-] An error occurred")
+            print(e)        
+        #if there is no report, continue with checking for number of submissions left and actual submission
+        #################
+        # scanning code #
+        #################
+        #check for any requests that's left
+        if websense_report == None:
+            print("[-] Checking if you have any requests for the day.")
+            request = urllib.request.Request("http://csi.websense.com")
+            request.add_header("User-Agent", "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1)")
+            response = urllib.request.urlopen(request)
+            resp = response.read().decode('utf-8')
+            num_remaining = re.findall('reports">(.*?) report', resp, re.DOTALL)[0]
+            print("[-] You have " + num_remaining + " requests left for the day.")
+            #if there are requests remaining, run report submission and grab URl and status
+            if int(num_remaining) > 0:
+                print("[*] Checking category for " + domain)
+                request = urllib.request.Request("http://csi.websense.com")
+                data = urllib.parse.urlencode({"LookupUrl":domain})
+                data = data.encode('utf-8')
+                request.add_header("User-Agent", "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1)")
+                response = urllib.request.urlopen(request, data=data)
+                try:
+                    reportUrl = response.url
+                    resp = response.read().decode('utf-8')
+                    location = re.findall('<td class="classAction">(.*?)</td>',resp,re.DOTALL)
+                    categories = location[4]
+                    print("\033[1;32m[!] Site categorized as: " + categories + "\033[0;0m")
+                    websense_history_file.update({domain : reportUrl})
+                    f = open("dict.json","w")
+                    f.write(websense_history_file)
+                    f.close()
+                except Exception as e:
+                    print("[-] An error occurred")
+                    print(e)
+            else:
+                print("[-] No requests remaining for this IP.")
+        else:
+            print("report already in storage")
+        return categories
+
 
     def check_trendmicro(self, domain):
         """Check the provided domain's category as determined by the Trend Micro."""
@@ -461,6 +512,8 @@ class DomainReview(object):
                 domain_categories.extend(trendmicro_results)
                 mxtoolbox_results = self.check_mxtoolbox(domain_name)
                 domain_categories.extend(domain_categories)
+                websense_results = self.check_websense(domain)
+                domain_categories.extend(websense_results)
                 # Make categories unique
                 domain_categories = list(set(domain_categories))
                 # Check if any categopries are suspect
@@ -486,6 +539,7 @@ class DomainReview(object):
                 lab_results[domain]['categories']['mxtoolbox'] = ', '.join(mxtoolbox_results)
                 lab_results[domain]['categories']['fortiguard'] = ', '.join(fortiguard_results)
                 lab_results[domain]['categories']['trendmicro'] = ', '.join(trendmicro_results)
+                lab_results[domain]['categories']['websense'] = ', '.join(websense_results)
                 # Sleep for a while for VirusTotal's API
                 sleep(self.request_delay)
         return lab_results
