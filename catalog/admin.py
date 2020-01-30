@@ -17,7 +17,7 @@ class DomainAdmin(admin.ModelAdmin):
             'fields': ('whois_status', 'health_status', 'health_dns')
         }),
         ('Categories', {
-            'fields': ('all_cat', 'ibm_xforce_cat', 'talos_cat', 'bluecoat_cat', 'fortiguard_cat', 'opendns_cat', 'trendmicro_cat')
+            'fields': ('all_cat', 'ibm_xforce_cat', 'talos_cat', 'bluecoat_cat', 'fortiguard_cat', 'websense_cat', 'opendns_cat', 'trendmicro_cat')
         }),
         ('Email and Spam', {
             'fields': ('mx_toolbox_status',)
