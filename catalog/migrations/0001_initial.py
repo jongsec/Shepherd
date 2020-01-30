@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(help_text='Enter a domain name', max_length=100, unique=True, verbose_name='Name')),
-                ('registrar', models.CharField(help_text='Enter the name of the registrar where this domain is registered', max_length=100, null=True, unique=True, verbose_name='Registrar')),
+                ('registrar', models.CharField(help_text='Enter the name of the registrar where this domain is registered', max_length=100, null=True, unique=False, verbose_name='Registrar')),
                 ('dns_record', models.CharField(help_text='Enter domain DNS records', max_length=500, null=True, verbose_name='DNS Record')),
                 ('health_dns', models.CharField(help_text='Domain health status based on passive DNS (e.g. Healthy, Burned)', max_length=100, null=True, verbose_name='DNS Health')),
                 ('creation', models.DateField(help_text='Domain purchase date', verbose_name='Purchase Date')),
@@ -53,6 +53,7 @@ class Migration(migrations.Migration):
                 ('talos_cat', models.CharField(help_text='Domain category as determined by Cisco Talos', max_length=100, null=True, verbose_name='Cisco Talos')),
                 ('bluecoat_cat', models.CharField(help_text='Domain category as determined by Bluecoat', max_length=100, null=True, verbose_name='Bluecoat')),
                 ('fortiguard_cat', models.CharField(help_text='Domain category as determined by Fortiguard', max_length=100, null=True, verbose_name='Fortiguard')),
+                ('websense_cat', models.CharField(help_text='Domain category as determined by Websense', max_length=100, null=True, verbose_name='Websense')),
                 ('opendns_cat', models.CharField(help_text='Domain category as determined by OpenDNS', max_length=100, null=True, verbose_name='OpenDNS')),
                 ('trendmicro_cat', models.CharField(help_text='Domain category as determined by TrendMicro', max_length=100, null=True, verbose_name='TrendMicro')),
                 ('mx_toolbox_status', models.CharField(help_text='Domain spam status as determined by MX Toolbox', max_length=100, null=True, verbose_name='MX Toolbox Status')),
