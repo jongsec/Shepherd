@@ -109,7 +109,7 @@ class Domain(models.Model):
     The availability and health statuses are Foreign Keys.
     """
     name = models.CharField('Name', max_length=100, unique=True, help_text='Enter a domain name')
-    registrar = models.CharField('Registrar', max_length=100, unique=True, help_text='Enter the name of the registrar where this domain is registered', null=True)
+    registrar = models.CharField('Registrar', max_length=100, unique=False, help_text='Enter the name of the registrar where this domain is registered', null=True)
     dns_record = models.CharField('DNS Record', max_length=500, help_text='Enter domain DNS records', null=True)
     health_dns = models.CharField('DNS Health', max_length=100, help_text='Domain health status based on passive DNS (e.g. Healthy, Burned)', null=True)
     creation = models.DateField('Purchase Date', help_text='Domain purchase date')
@@ -119,6 +119,7 @@ class Domain(models.Model):
     talos_cat = models.CharField('Cisco Talos', max_length=100, help_text='Domain category as determined by Cisco Talos', null=True)
     bluecoat_cat =models.CharField('Bluecoat', max_length=100, help_text='Domain category as determined by Bluecoat', null=True)
     fortiguard_cat = models.CharField('Fortiguard', max_length=100, help_text='Domain category as determined by Fortiguard', null=True)
+    websense_cat = models.CharField('Websense', max_length=100, help_text='Domain category as determined by Websense', null=True)
     opendns_cat = models.CharField('OpenDNS', max_length=100, help_text='Domain category as determined by OpenDNS', null=True)
     trendmicro_cat = models.CharField('TrendMicro', max_length=100, help_text='Domain category as determined by TrendMicro', null=True)
     mx_toolbox_status =  models.CharField('MX Toolbox Status', max_length=100, help_text='Domain spam status as determined by MX Toolbox', null=True)
